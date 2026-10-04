@@ -10,6 +10,8 @@ from ml.predict import predict_risk
 from .forms import FEATURE_FIELDS, PredictionForm, StudentForm
 from .mongo import get_predictions_collection, get_students_collection
 
+from django.contrib.auth.decorators import login_required
+
 
 def get_student_or_404(student_id):
     """Fetch one student by its string id, or raise a 404 page."""
@@ -38,6 +40,7 @@ def home(request):
     return render(request, "students/home.html", context)
 
 
+@login_required
 def student_list(request):
     students = list(get_students_collection().find().sort("created_at", -1))
     # Templates can't use a name starting with "_", so we add a plain "id" field.
@@ -46,6 +49,7 @@ def student_list(request):
     return render(request, "students/student_list.html", {"students": students})
 
 
+@login_required
 def add_student(request):
     if request.method == "POST":
         form = StudentForm(request.POST)
@@ -60,6 +64,7 @@ def add_student(request):
     return render(request, "students/add_student.html", {"form": form, "title": "Add Student"})
 
 
+@login_required
 def edit_student(request, student_id):
     student = get_student_or_404(student_id)
 
@@ -77,6 +82,7 @@ def edit_student(request, student_id):
     return render(request, "students/add_student.html", {"form": form, "title": "Edit Student"})
 
 
+@login_required
 def delete_student(request, student_id):
     student = get_student_or_404(student_id)
 
@@ -87,6 +93,7 @@ def delete_student(request, student_id):
     return redirect("student_list")
 
 
+@login_required
 def predict_student(request):
     if request.method == "POST":
         form = PredictionForm(request.POST)
@@ -109,6 +116,7 @@ def predict_student(request):
     return render(request, "students/predict.html", {"form": form})
 
 
+@login_required
 def prediction_detail(request, prediction_id):
     try:
         prediction = get_predictions_collection().find_one({"_id": ObjectId(prediction_id)})
@@ -119,6 +127,8 @@ def prediction_detail(request, prediction_id):
 
     return render(request, "students/prediction_detail.html", {"p": prediction})
 
+
+@login_required
 def dashboard(request):
     students = get_students_collection()
     predictions = get_predictions_collection()

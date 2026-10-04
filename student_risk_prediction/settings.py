@@ -126,3 +126,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # MongoDB settings
 MONGO_URI = "mongodb://localhost:27017/"
 MONGO_DB_NAME = "student_prediction_db"
+
+# Authentication
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "login"
