@@ -7,6 +7,7 @@
 <body>
     <h1>{{ project_name }}</h1>
     <p>Total students in database: {{ total_students }}</p>
+    <p><a href="{% url 'student_list' %}">View students</a> | <a href="{% url 'add_student' %}">Add student</a></p>
 
     <h2>Planned features</h2>
     <ul>

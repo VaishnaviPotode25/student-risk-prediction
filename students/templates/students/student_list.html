@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Students</title>
+</head>
+<body>
+    <h1>Students</h1>
+    <p><a href="{% url 'add_student' %}">+ Add student</a> | <a href="{% url 'home' %}">Home</a></p>
+
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Name</th>
+            <th>Attendance</th>
+            <th>Assignments</th>
+            <th>Internal marks</th>
+            <th>CGPA</th>
+            <th>Study hrs</th>
+            <th>Backlogs</th>
+        </tr>
+        {% for s in students %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.attendance }}</td>
+            <td>{{ s.assignment_completion }}</td>
+            <td>{{ s.internal_marks }}</td>
+            <td>{{ s.previous_cgpa }}</td>
+            <td>{{ s.study_hours }}</td>
+            <td>{{ s.backlogs }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No students yet.</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
