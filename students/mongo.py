@@ -9,3 +9,7 @@ _db = _client[settings.MONGO_DB_NAME]
 
 def get_students_collection():
     return _db["students"]
+
+
+def get_predictions_collection():
+    return _db["predictions"]

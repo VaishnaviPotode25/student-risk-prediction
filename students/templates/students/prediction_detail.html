@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Result</title>
+</head>
+<body>
+    <h1>Prediction: {{ p.student_name }}</h1>
+
+    <h2>Risk level: {{ p.risk_level }}</h2>
+
+    <h3>Model confidence</h3>
+    <ul>
+        <li>Low: {{ p.probabilities.Low }}%</li>
+        <li>Medium: {{ p.probabilities.Medium }}%</li>
+        <li>High: {{ p.probabilities.High }}%</li>
+    </ul>
+
+    {% if p.risk_factors %}
+    <h3>Factors raising the risk</h3>
+    <ul>
+        {% for f in p.risk_factors %}
+        <li>{{ f.label }} = {{ f.value }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if p.protective_factors %}
+    <h3>Factors lowering the risk</h3>
+    <ul>
+        {% for f in p.protective_factors %}
+        <li>{{ f.label }} = {{ f.value }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <h3>Inputs used</h3>
+    <ul>
+        {% for name, value in p.inputs.items %}
+        <li>{{ name }}: {{ value }}</li>
+        {% endfor %}
+    </ul>
+
+    <p><small>Model: {{ p.model_name }}</small></p>
+    <p><a href="{% url 'predict_student' %}">Predict another</a> | <a href="{% url 'home' %}">Home</a></p>
+</body>
+</html>

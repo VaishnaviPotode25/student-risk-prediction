@@ -5,8 +5,10 @@ from bson.errors import InvalidId
 from django.http import Http404
 from django.shortcuts import render, redirect
 
-from .forms import StudentForm
-from .mongo import get_students_collection
+from ml.predict import predict_risk
+
+from .forms import FEATURE_FIELDS, PredictionForm, StudentForm
+from .mongo import get_predictions_collection, get_students_collection
 
 
 def get_student_or_404(student_id):
@@ -83,3 +85,36 @@ def delete_student(request, student_id):
         get_students_collection().delete_one({"_id": student["_id"]})
 
     return redirect("student_list")
+
+
+def predict_student(request):
+    if request.method == "POST":
+        form = PredictionForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            inputs = {field: data[field] for field in FEATURE_FIELDS}
+            result = predict_risk(inputs)
+
+            record = {
+                "student_name": data["name"] or "Unnamed student",
+                "inputs": inputs,
+                **result,
+                "predicted_at": datetime.now(),
+            }
+            inserted = get_predictions_collection().insert_one(record)
+            return redirect("prediction_detail", prediction_id=str(inserted.inserted_id))
+    else:
+        form = PredictionForm()
+
+    return render(request, "students/predict.html", {"form": form})
+
+
+def prediction_detail(request, prediction_id):
+    try:
+        prediction = get_predictions_collection().find_one({"_id": ObjectId(prediction_id)})
+    except InvalidId:
+        raise Http404("Invalid prediction id")
+    if prediction is None:
+        raise Http404("Prediction not found")
+
+    return render(request, "students/prediction_detail.html", {"p": prediction})
