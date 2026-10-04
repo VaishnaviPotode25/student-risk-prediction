@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <p>
+        <a href="{% url 'home' %}">Home</a> |
+        <a href="{% url 'student_list' %}">Students</a> |
+        <a href="{% url 'predict_student' %}">Predict risk</a>
+    </p>
+
+    <h2>Overview</h2>
+    <ul>
+        <li>Total students: {{ total_students }}</li>
+        <li>Labelled students (training data): {{ labelled_students }}</li>
+        <li>Predictions made: {{ total_predictions }}</li>
+    </ul>
+
+    <h2>Risk distribution and averages</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:30px;">
+        <div style="width:380px;"><canvas id="riskChart"></canvas></div>
+        <div style="width:560px;"><canvas id="avgChart"></canvas></div>
+    </div>
+
+    <h2>Average profile by risk level</h2>
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Risk level</th>
+            <th>Students</th>
+            <th>Attendance</th>
+            <th>Assignments</th>
+            <th>Internal marks</th>
+            <th>CGPA</th>
+            <th>Backlogs</th>
+        </tr>
+        {% for row in summary %}
+        <tr>
+            <td>{{ row.level }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.avg_attendance }}</td>
+            <td>{{ row.avg_assignments }}</td>
+            <td>{{ row.avg_marks }}</td>
+            <td>{{ row.avg_cgpa }}</td>
+            <td>{{ row.avg_backlogs }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Recent predictions</h2>
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Student</th>
+            <th>Risk level</th>
+            <th>Confidence in that level</th>
+            <th>When</th>
+            <th></th>
+        </tr>
+        {% for p in recent_predictions %}
+        <tr>
+            <td>{{ p.student_name }}</td>
+            <td>{{ p.risk_level }}</td>
+            <td>
+                {% if p.risk_level == "Low" %}{{ p.probabilities.Low }}%{% endif %}
+                {% if p.risk_level == "Medium" %}{{ p.probabilities.Medium }}%{% endif %}
+                {% if p.risk_level == "High" %}{{ p.probabilities.High }}%{% endif %}
+            </td>
+            <td>{{ p.predicted_at }}</td>
+            <td><a href="{% url 'prediction_detail' p.id %}">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No predictions yet.</td></tr>
+        {% endfor %}
+    </table>
+
+    {{ chart_data|json_script:"chart-data" }}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+        const data = JSON.parse(document.getElementById("chart-data").textContent);
+        const colors = ["#2e9e5b", "#e8a317", "#d64545"]; // Low, Medium, High
+
+        new Chart(document.getElementById("riskChart"), {
+            type: "doughnut",
+            data: {
+                labels: data.levels,
+                datasets: [{ data: data.counts, backgroundColor: colors }]
+            },
+            options: { plugins: { title: { display: true, text: "Students by risk level" } } }
+        });
+
+        new Chart(document.getElementById("avgChart"), {
+            type: "bar",
+            data: {
+                labels: data.levels,
+                datasets: [
+                    { label: "Attendance", data: data.avg_attendance, backgroundColor: "#4c78a8" },
+                    { label: "Assignments", data: data.avg_assignments, backgroundColor: "#f58518" },
+                    { label: "Internal marks", data: data.avg_marks, backgroundColor: "#54a24b" }
+                ]
+            },
+            options: {
+                plugins: { title: { display: true, text: "Average scores by risk level" } },
+                scales: { y: { min: 0, max: 100 } }
+            }
+        });
+    </script>
+</body>
+</html>

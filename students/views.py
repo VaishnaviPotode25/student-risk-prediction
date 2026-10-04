@@ -118,3 +118,56 @@ def prediction_detail(request, prediction_id):
         raise Http404("Prediction not found")
 
     return render(request, "students/prediction_detail.html", {"p": prediction})
+
+def dashboard(request):
+    students = get_students_collection()
+    predictions = get_predictions_collection()
+
+    # MongoDB groups the labelled students by risk level and computes the averages.
+    pipeline = [
+        {"$match": {"risk_level": {"$exists": True}}},
+        {"$group": {
+            "_id": "$risk_level",
+            "count": {"$sum": 1},
+            "avg_attendance": {"$avg": "$attendance"},
+            "avg_assignments": {"$avg": "$assignment_completion"},
+            "avg_marks": {"$avg": "$internal_marks"},
+            "avg_cgpa": {"$avg": "$previous_cgpa"},
+            "avg_backlogs": {"$avg": "$backlogs"},
+        }},
+    ]
+    grouped = {row["_id"]: row for row in students.aggregate(pipeline)}
+
+    summary = []
+    for level in ["Low", "Medium", "High"]:
+        row = grouped.get(level, {})
+        summary.append({
+            "level": level,
+            "count": row.get("count", 0),
+            "avg_attendance": round(row.get("avg_attendance", 0), 1),
+            "avg_assignments": round(row.get("avg_assignments", 0), 1),
+            "avg_marks": round(row.get("avg_marks", 0), 1),
+            "avg_cgpa": round(row.get("avg_cgpa", 0), 2),
+            "avg_backlogs": round(row.get("avg_backlogs", 0), 2),
+        })
+
+    recent = list(predictions.find().sort("predicted_at", -1).limit(10))
+    for p in recent:
+        p["id"] = str(p["_id"])
+
+    context = {
+        "total_students": students.count_documents({}),
+        "labelled_students": sum(row["count"] for row in summary),
+        "total_predictions": predictions.count_documents({}),
+        "summary": summary,
+        "recent_predictions": recent,
+        # json_script in the template passes this safely to JavaScript
+        "chart_data": {
+            "levels": [row["level"] for row in summary],
+            "counts": [row["count"] for row in summary],
+            "avg_attendance": [row["avg_attendance"] for row in summary],
+            "avg_assignments": [row["avg_assignments"] for row in summary],
+            "avg_marks": [row["avg_marks"] for row in summary],
+        },
+    }
+    return render(request, "students/dashboard.html", context)
