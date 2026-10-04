@@ -1,10 +1,13 @@
 from django.shortcuts import render
+from .mongo import get_students_collection
 
 
 def home(request):
+    students = get_students_collection()
+
     context = {
         "project_name": "Smart Student Performance Analytics and Risk Prediction System",
-        "total_students": 0,
+        "total_students": students.count_documents({}),
         "features": [
             "Store student data in MongoDB",
             "Train a machine learning model",
