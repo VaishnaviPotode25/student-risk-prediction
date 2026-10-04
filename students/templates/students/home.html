@@ -5,7 +5,14 @@
     <title>Student Risk Prediction</title>
 </head>
 <body>
-    <h1>Smart Student Performance Analytics and Risk Prediction System</h1>
-    <p>Django is working. This is our first page.</p>
+    <h1>{{ project_name }}</h1>
+    <p>Total students in database: {{ total_students }}</p>
+
+    <h2>Planned features</h2>
+    <ul>
+        {% for feature in features %}
+            <li>{{ feature }}</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
