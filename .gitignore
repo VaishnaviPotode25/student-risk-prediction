@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Django
+db.sqlite3
+*.log
+staticfiles/
+
+# Secrets
+.env
+
+# Data and trained models (can be large)
+data/*.csv
+ml/*.pkl
+
+# IDE
+.vscode/
+.ipynb_checkpoints/
