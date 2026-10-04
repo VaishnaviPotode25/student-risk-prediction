@@ -14,19 +14,35 @@ FEATURE_LABELS = {
     "backlogs": "Backlogs",
 }
 
-_bundle = None  # cache: load the model file once, not on every request
+_bundle = None
+_bundle_mtime = None  # when model.pkl was last changed
 
 
 def _load_bundle():
-    global _bundle
-    if _bundle is None:
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(
-                "model.pkl not found. Train it first: python ml/train_model.py"
-            )
+    """Load model.pkl, and reload it automatically if the file has been replaced."""
+    global _bundle, _bundle_mtime
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(
+            "model.pkl not found. Train it first: python -m ml.train_model"
+        )
+    mtime = MODEL_PATH.stat().st_mtime
+    if _bundle is None or mtime != _bundle_mtime:
         _bundle = joblib.load(MODEL_PATH)
+        _bundle_mtime = mtime
     return _bundle
 
+
+def model_info():
+    """Short description of the model currently in use, or None if there isn't one."""
+    try:
+        bundle = _load_bundle()
+    except FileNotFoundError:
+        return None
+    return {
+        "name": str(bundle.get("model_name", "unknown")),
+        "test_f1": round(float(bundle.get("test_f1_macro", 0)), 3),
+        "n_rows": bundle.get("n_rows"),
+    }
 
 def _explain(model, features, row):
     """Which features push this student's risk up or down, versus an average student.

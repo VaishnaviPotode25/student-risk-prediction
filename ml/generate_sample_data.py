@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pymongo import MongoClient
 
@@ -54,7 +54,7 @@ def make_student(number):
         "backlogs": backlogs,
         "risk_level": risk,
         "source": "synthetic",
-        "created_at": datetime.now(),
+        "created_at": datetime.now(timezone.utc),
     }
 
 

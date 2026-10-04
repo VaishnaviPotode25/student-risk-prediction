@@ -1,16 +1,23 @@
-from datetime import datetime
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.utils import timezone
+
+from ml.training import train_and_select
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from django.http import Http404
 from django.shortcuts import render, redirect
 
-from ml.predict import predict_risk
+from ml.predict import model_info, predict_risk
 
 from .forms import FEATURE_FIELDS, PredictionForm, StudentForm
-from .mongo import get_predictions_collection, get_students_collection
+from .mongo import (
+    get_predictions_collection,
+    get_students_collection,
+    get_training_runs_collection,
+)
 
-from django.contrib.auth.decorators import login_required
 
 
 def get_student_or_404(student_id):
@@ -55,7 +62,7 @@ def add_student(request):
         form = StudentForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            data["created_at"] = datetime.now()
+            data["created_at"] = timezone.now()
             get_students_collection().insert_one(data)
             return redirect("student_list")
     else:
@@ -106,7 +113,7 @@ def predict_student(request):
                 "student_name": data["name"] or "Unnamed student",
                 "inputs": inputs,
                 **result,
-                "predicted_at": datetime.now(),
+                "predicted_at": timezone.now(),
             }
             inserted = get_predictions_collection().insert_one(record)
             return redirect("prediction_detail", prediction_id=str(inserted.inserted_id))
@@ -165,13 +172,19 @@ def dashboard(request):
     for p in recent:
         p["id"] = str(p["_id"])
 
+    training_runs = list(
+        get_training_runs_collection().find().sort("trained_at", -1).limit(5)
+    )
+
     context = {
         "total_students": students.count_documents({}),
         "labelled_students": sum(row["count"] for row in summary),
         "total_predictions": predictions.count_documents({}),
         "summary": summary,
         "recent_predictions": recent,
-        # json_script in the template passes this safely to JavaScript
+        "model_info": model_info(),
+        "training_runs": training_runs,
+        "can_retrain": request.user.is_staff,
         "chart_data": {
             "levels": [row["level"] for row in summary],
             "counts": [row["count"] for row in summary],
@@ -181,3 +194,26 @@ def dashboard(request):
         },
     }
     return render(request, "students/dashboard.html", context)
+
+
+@login_required
+@user_passes_test(lambda user: user.is_staff)
+def retrain_model(request):
+    # Retraining changes the live model, so it must only ever run on POST.
+    if request.method != "POST":
+        return redirect("dashboard")
+
+    try:
+        report = train_and_select()
+    except ValueError as error:
+        messages.error(request, str(error))
+        return redirect("dashboard")
+
+    report["triggered_by"] = request.user.username
+    get_training_runs_collection().insert_one(report)
+
+    if report["promoted"]:
+        messages.success(request, f"Retrained. Now using {report['best_model']}. {report['reason']}")
+    else:
+        messages.warning(request, f"Retrained, but {report['reason']}")
+    return redirect("dashboard")

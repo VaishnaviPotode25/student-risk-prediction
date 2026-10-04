@@ -10,4 +10,5 @@ urlpatterns = [
     path("predict/", views.predict_student, name="predict_student"),
     path("predict/<str:prediction_id>/", views.prediction_detail, name="prediction_detail"),
     path("dashboard/", views.dashboard, name="dashboard"),
+    path("retrain/", views.retrain_model, name="retrain_model"),
 ]

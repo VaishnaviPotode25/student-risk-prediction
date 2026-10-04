@@ -6,6 +6,14 @@
 </head>
 <body>
     <h1>Dashboard</h1>
+        {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li><strong>{{ message.tags }}:</strong> {{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
     <p>
         <a href="{% url 'home' %}">Home</a> |
         <a href="{% url 'student_list' %}">Students</a> |
@@ -18,6 +26,51 @@
         <li>Labelled students (training data): {{ labelled_students }}</li>
         <li>Predictions made: {{ total_predictions }}</li>
     </ul>
+
+
+    <h2>Model</h2>
+    {% if model_info %}
+    <p>
+        Active model: <strong>{{ model_info.name }}</strong>
+        (test macro F1: {{ model_info.test_f1 }}{% if model_info.n_rows %}, trained on {{ model_info.n_rows }} students{% endif %})
+    </p>
+    {% else %}
+    <p>No trained model found. Run <code>python -m ml.train_model</code> first.</p>
+    {% endif %}
+
+    {% if can_retrain %}
+    <form method="post" action="{% url 'retrain_model' %}"
+          onsubmit="return confirm('Retrain the model now? This can take up to a minute.');">
+        {% csrf_token %}
+        <button type="submit">Retrain model</button>
+    </form>
+    {% endif %}
+
+    {% if training_runs %}
+    <h3>Recent training runs</h3>
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>When</th>
+            <th>By</th>
+            <th>Students</th>
+            <th>Best model</th>
+            <th>New F1</th>
+            <th>Old F1</th>
+            <th>Outcome</th>
+        </tr>
+        {% for run in training_runs %}
+        <tr>
+            <td>{{ run.trained_at }}</td>
+            <td>{{ run.triggered_by }}</td>
+            <td>{{ run.n_rows }}</td>
+            <td>{{ run.best_model }}</td>
+            <td>{{ run.new_metrics.f1_macro|floatformat:3 }}</td>
+            <td>{% if run.old_metrics %}{{ run.old_metrics.f1_macro|floatformat:3 }}{% else %}-{% endif %}</td>
+            <td>{% if run.promoted %}Replaced model{% else %}Kept current model{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
 
     <h2>Risk distribution and averages</h2>
     <div style="display:flex; flex-wrap:wrap; gap:30px;">
