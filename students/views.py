@@ -212,5 +212,6 @@ def retrain_model(request):
     if report["promoted"]:
         messages.success(request, f"Retrained. Now using {report['best_model']}. {report['reason']}")
     else:
-        messages.warning(request, f"Retrained, but {report['reason']}")
+        # messages.warning(request, f"Retrained, but {report['reason']}")
+        messages.warning(request, f"Model not replaced. {report['reason']}")
     return redirect("dashboard")
