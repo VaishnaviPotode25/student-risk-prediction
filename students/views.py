@@ -9,7 +9,7 @@ from django.utils import timezone
 from ml.predict import model_info, predict_risk
 from ml.training import train_and_select
 
-from .forms import FEATURE_FIELDS, PredictionForm, StudentForm
+from .forms import FEATURE_FIELDS, OUTCOME_TO_RISK, PredictionForm, StudentForm
 from .mongo import (
     get_predictions_collection,
     get_students_collection,
@@ -26,6 +26,14 @@ def get_student_or_404(student_id):
     if student is None:
         raise Http404("Student not found")
     return student
+
+def outcome_fields(outcome):
+    """The three fields stored on a student whose real outcome is known."""
+    return {
+        "actual_outcome": outcome,
+        "risk_level": OUTCOME_TO_RISK[outcome],
+        "source": "outcome",
+    }
 
 
 def home(request):
@@ -59,7 +67,10 @@ def add_student(request):
         form = StudentForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
+            outcome = data.pop("actual_outcome")
             data["created_at"] = timezone.now()
+            if outcome:
+                data.update(outcome_fields(outcome))
             get_students_collection().insert_one(data)
             return redirect("student_list")
     else:
@@ -75,10 +86,16 @@ def edit_student(request, student_id):
     if request.method == "POST":
         form = StudentForm(request.POST)
         if form.is_valid():
-            get_students_collection().update_one(
-                {"_id": student["_id"]},
-                {"$set": form.cleaned_data},
-            )
+            data = form.cleaned_data
+            outcome = data.pop("actual_outcome")
+            update = {"$set": data}
+            if outcome:
+                update["$set"].update(outcome_fields(outcome))
+            elif student.get("source") == "outcome":
+                # The outcome was cleared, so remove the label it produced.
+                # Synthetic labels are left alone.
+                update["$unset"] = {"actual_outcome": "", "risk_level": "", "source": ""}
+            get_students_collection().update_one({"_id": student["_id"]}, update)
             return redirect("student_list")
     else:
         form = StudentForm(initial=student)
@@ -176,6 +193,7 @@ def dashboard(request):
     context = {
         "total_students": students.count_documents({}),
         "labelled_students": sum(row["count"] for row in summary),
+        "real_labelled": students.count_documents({"source": "outcome"}),
         "total_predictions": predictions.count_documents({}),
         "summary": summary,
         "recent_predictions": recent,

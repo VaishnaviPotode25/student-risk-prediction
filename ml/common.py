@@ -21,6 +21,7 @@ def load_data():
 
     query = {"risk_level": {"$exists": True}}
     projection = {"_id": 0, "risk_level": 1}
+    projection["source"] = 1
     projection.update({feature: 1 for feature in FEATURES})
 
     return pd.DataFrame(list(collection.find(query, projection)))

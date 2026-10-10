@@ -64,6 +64,7 @@ def train_and_select():
             f"Only {len(df)} labelled students found; at least {MIN_ROWS} are needed to retrain."
         )
     counts = df["risk_level"].value_counts()
+    real_rows = int((df["source"] == "outcome").sum()) if "source" in df else 0
     if len(counts) < 3 or counts.min() < MIN_PER_CLASS:
         raise ValueError(
             f"Each risk level needs at least {MIN_PER_CLASS} examples. Found: {counts.to_dict()}"
@@ -143,6 +144,7 @@ def train_and_select():
     return {
         "trained_at": trained_at,
         "n_rows": int(len(df)),
+        "real_rows": real_rows,
         "class_counts": {str(k): int(v) for k, v in counts.items()},
         "comparison": comparison.round(4).to_dict("records"),
         "best_model": best_name,
