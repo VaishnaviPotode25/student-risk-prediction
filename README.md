@@ -98,3 +98,9 @@ ml/model_comparison.csv    latest model comparison
 - Retraining runs inside the web request, which is fine at this size. A larger system would use
   a background job.
 - The model is only as good as the labels. Real outcome labels need to be collected over time.
+
+## Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
+![Prediction result](docs/screenshots/prediction.png)
+![Student list](docs/screenshots/students.png)

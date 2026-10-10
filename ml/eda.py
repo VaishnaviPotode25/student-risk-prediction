@@ -5,37 +5,12 @@ import matplotlib
 matplotlib.use("Agg")  # draw straight to image files, no pop-up window
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import seaborn as sns
-from pymongo import MongoClient
 
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "student_prediction_db"
+from ml.common import FEATURES, RISK_ORDER, load_data
 
 OUTPUT_DIR = Path(__file__).parent / "eda_output"
 OUTPUT_DIR.mkdir(exist_ok=True)
-
-FEATURES = [
-    "attendance",
-    "assignment_completion",
-    "internal_marks",
-    "previous_cgpa",
-    "study_hours",
-    "backlogs",
-]
-RISK_ORDER = ["Low", "Medium", "High"]
-
-
-def load_data():
-    """Pull labelled students out of MongoDB into a pandas DataFrame."""
-    collection = MongoClient(MONGO_URI)[DB_NAME]["students"]
-
-    query = {"risk_level": {"$exists": True}}  # only rows that have a label
-    projection = {"_id": 0, "risk_level": 1}
-    projection.update({feature: 1 for feature in FEATURES})
-
-    return pd.DataFrame(list(collection.find(query, projection)))
-
 
 df = load_data()
 
