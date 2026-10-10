@@ -3,8 +3,7 @@ from datetime import datetime, timezone
 
 from pymongo import MongoClient
 
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "student_prediction_db"
+from ml.common import DB_NAME, MONGO_URI
 NUM_STUDENTS = 2000
 
 random.seed(42)  # same seed = same data every run (reproducible)

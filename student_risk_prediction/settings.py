@@ -12,20 +12,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import os
+
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-cnpmb9u#w*p6w-cnd5cn751ts%-p+hr6zq-*^luby_ah^jv6$p"
+# Secure by default: DEBUG is off unless the environment turns it on.
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "dev-only-insecure-key"
+    else:
+        raise ImproperlyConfigured("Set the DJANGO_SECRET_KEY environment variable.")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 
 # Application definition
@@ -124,10 +134,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # MongoDB settings
-MONGO_URI = "mongodb://localhost:27017/"
-MONGO_DB_NAME = "student_prediction_db"
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_DB_NAME = os.environ.get("MONGO_DB_NAME", "student_prediction_db")
 
 # Authentication
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+
+
+# Extra protection that only applies on a real server
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

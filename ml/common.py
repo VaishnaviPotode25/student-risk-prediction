@@ -1,8 +1,14 @@
+import os
+from pathlib import Path
+
 import pandas as pd
+from dotenv import load_dotenv
 from pymongo import MongoClient
 
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "student_prediction_db"
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+DB_NAME = os.environ.get("MONGO_DB_NAME", "student_prediction_db")
 
 FEATURES = [
     "attendance",
