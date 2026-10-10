@@ -1,15 +1,13 @@
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.utils import timezone
-
-from ml.training import train_and_select
-
 from bson import ObjectId
 from bson.errors import InvalidId
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from ml.predict import model_info, predict_risk
+from ml.training import train_and_select
 
 from .forms import FEATURE_FIELDS, PredictionForm, StudentForm
 from .mongo import (
@@ -17,7 +15,6 @@ from .mongo import (
     get_students_collection,
     get_training_runs_collection,
 )
-
 
 
 def get_student_or_404(student_id):
