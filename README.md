@@ -28,7 +28,7 @@ Retrain button -> ml/training.py -> compare 7 models -> promote only if not wors
   only if the new one scores at least as well on the same test set
 - A training log in MongoDB, and a backup of the previous model
 - Real outcomes can be recorded per student and used as training labels
-- 26 automated tests that run against a throwaway database
+- 31 automated tests that run against a throwaway database
 
 ## Model comparison
 
