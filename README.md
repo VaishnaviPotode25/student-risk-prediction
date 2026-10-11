@@ -32,7 +32,7 @@ Retrain button -> ml/training.py -> compare 7 models -> promote only if not wors
 
 ## Model comparison
 
-5-fold cross-validation on the training split (1,600 students, synthetic data):
+5-fold cross-validation on the training split (about 1,600 students, synthetic data):
 
 | Model | Accuracy | Macro F1 | High recall |
 |---|---|---|---|
@@ -44,10 +44,13 @@ Retrain button -> ml/training.py -> compare 7 models -> promote only if not wors
 | Gradient Boosting | 0.891 | 0.886 | 0.892 |
 | Decision Tree | 0.852 | 0.846 | 0.874 |
 
+Figures come from one training run. Each successful retrain rewrites ml/model_comparison.csv, and the numbers can move by a few thousandths.
+
 Logistic Regression was selected: it ranked first on macro F1 and High-class recall, and it gives
 per-student explanations. It performs well partly because the synthetic labels come from a
 weighted sum of the features, which a linear model fits naturally. On the held-out test set
-(400 students) it reached macro F1 0.909, and no High student was ever predicted as Low.
+(about 400 students) it reached macro F1 0.909.
+Compared 7 classifiers with stratified 5-fold cross-validation on a 2,000-student synthetic dataset. Selected Logistic Regression (macro F1 0.91 on a held-out test set, with High-risk recall of 0.90) for accuracy and per-prediction explainability.
 
 ## Setup (Windows)
 
