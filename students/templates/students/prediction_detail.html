@@ -1,47 +1,83 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Prediction Result</title>
-</head>
-<body>
-    <h1>Prediction: {{ p.student_name }}</h1>
+{% extends "students/base.html" %}
+{% block title %}Prediction for {{ p.student_name }}{% endblock %}
 
-    <h2>Risk level: {{ p.risk_level }}</h2>
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ p.student_name }}</h1>
+        <p>Risk prediction made on {{ p.predicted_at|date:"j M Y, H:i" }}.</p>
+    </div>
+    <div class="actions">
+        <a class="btn btn-primary" href="{% url 'predict_student' %}">Predict another student</a>
+        <a class="btn btn-secondary" href="{% url 'dashboard' %}">Dashboard</a>
+    </div>
+</div>
 
-    <h3>Model confidence</h3>
-    <ul>
-        <li>Low: {{ p.probabilities.Low }}%</li>
-        <li>Medium: {{ p.probabilities.Medium }}%</li>
-        <li>High: {{ p.probabilities.High }}%</li>
-    </ul>
+<div class="stack">
+    <section class="panel">
+        <p class="muted" style="margin: 0;">Predicted risk level</p>
+        <div class="result-level {{ p.risk_level|lower }}">{{ p.risk_level }}</div>
+        <p style="margin: 0; max-width: 60ch;">
+            {% if p.risk_level == "High" %}
+            This profile looks like students who ended up struggling. A conversation soon would help.
+            {% elif p.risk_level == "Medium" %}
+            There are some signs of strain. Worth checking in before they grow.
+            {% else %}
+            This profile looks steady. No action needed right now.
+            {% endif %}
+        </p>
 
-    {% if p.risk_factors %}
-    <h3>Factors raising the risk</h3>
-    <ul>
-        {% for f in p.risk_factors %}
-        <li>{{ f.label }} = {{ f.value }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+        <div class="meter" role="img" aria-label="Probability of each level: Low {{ p.probabilities.Low }} percent, Medium {{ p.probabilities.Medium }} percent, High {{ p.probabilities.High }} percent">
+            <span class="m-low" style="width: {{ p.probabilities.Low|stringformat:'.1f' }}%"></span>
+            <span class="m-medium" style="width: {{ p.probabilities.Medium|stringformat:'.1f' }}%"></span>
+            <span class="m-high" style="width: {{ p.probabilities.High|stringformat:'.1f' }}%"></span>
+        </div>
+        <div class="legend">
+            <span class="lg-low">Low {{ p.probabilities.Low }}%</span>
+            <span class="lg-medium">Medium {{ p.probabilities.Medium }}%</span>
+            <span class="lg-high">High {{ p.probabilities.High }}%</span>
+        </div>
+    </section>
 
-    {% if p.protective_factors %}
-    <h3>Factors lowering the risk</h3>
-    <ul>
-        {% for f in p.protective_factors %}
-        <li>{{ f.label }} = {{ f.value }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+    <div class="grid grid-2">
+        <section class="panel">
+            <h2>Pushing the risk up</h2>
+            {% for f in p.risk_factors %}
+            <div class="factor up">
+                <span class="name">{{ f.label }}</span>
+                <span class="val">{{ f.value|floatformat:"-1" }}</span>
+                <span class="bar"><i style="width: {{ f.width }}%"></i></span>
+            </div>
+            {% empty %}
+            <p class="muted">Nothing stands out.</p>
+            {% endfor %}
+        </section>
 
-    <h3>Inputs used</h3>
-    <ul>
-        {% for name, value in p.inputs.items %}
-        <li>{{ name }}: {{ value }}</li>
-        {% endfor %}
-    </ul>
+        <section class="panel">
+            <h2>Holding the risk down</h2>
+            {% for f in p.protective_factors %}
+            <div class="factor down">
+                <span class="name">{{ f.label }}</span>
+                <span class="val">{{ f.value|floatformat:"-1" }}</span>
+                <span class="bar"><i style="width: {{ f.width }}%"></i></span>
+            </div>
+            {% empty %}
+            <p class="muted">Nothing stands out.</p>
+            {% endfor %}
+        </section>
+    </div>
 
-    <p><small>Model: {{ p.model_name }}</small></p>
-    <p><a href="{% url 'predict_student' %}">Predict another</a> | <a href="{% url 'home' %}">Home</a></p>
-</body>
-</html>
+    <section class="panel">
+        <h2>Numbers used</h2>
+        <dl class="facts">
+            {% for label, value in p.inputs_display %}
+            <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+            {% endfor %}
+        </dl>
+    </section>
+
+    <p class="muted" style="font-size: 0.9rem;">
+        Model: {{ p.model_name }}. The training data includes generated examples, so treat these percentages as a guide, not a guarantee.
+    </p>
+</div>
+{% endblock %}

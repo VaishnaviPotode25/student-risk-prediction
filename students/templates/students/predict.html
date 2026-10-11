@@ -1,18 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Predict Risk</title>
-</head>
-<body>
-    <h1>Predict Student Risk</h1>
+{% extends "students/base.html" %}
+{% block title %}Predict risk{% endblock %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Predict risk</button>
-    </form>
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Predict a student's risk</h1>
+        <p>Enter the student's current numbers. You'll see the risk level, how sure the model is, and what is driving it.</p>
+    </div>
+</div>
 
-    <p><a href="{% url 'home' %}">Home</a></p>
-</body>
-</html>
+<div class="grid split">
+    <section class="panel">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<p class="error" role="alert">{{ form.non_field_errors }}</p>{% endif %}
+            <div class="form-grid">
+                {% include "students/_fields.html" %}
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Predict risk</button>
+            </div>
+        </form>
+    </section>
+
+    <aside class="panel">
+        <h2>Try an example</h2>
+        <p class="muted">Fill the form with a sample profile to see what a result looks like.</p>
+        <div class="actions">
+            <button type="button" class="btn btn-secondary" data-example="atrisk">Student who is struggling</button>
+            <button type="button" class="btn btn-secondary" data-example="strong">Student who is doing well</button>
+        </div>
+        <p class="hint" style="margin-top: 16px;">Every prediction is saved and appears on the dashboard.</p>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var examples = {
+        atrisk: { attendance: 45, assignment_completion: 35, internal_marks: 40, previous_cgpa: 4.5, study_hours: 1, backlogs: 3 },
+        strong: { attendance: 92, assignment_completion: 90, internal_marks: 87, previous_cgpa: 8.4, study_hours: 4, backlogs: 0 }
+    };
+    document.querySelectorAll("[data-example]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            var values = examples[button.dataset.example];
+            Object.keys(values).forEach(function (name) {
+                var input = document.getElementById("id_" + name);
+                if (input) { input.value = values[name]; }
+            });
+        });
+    });
+</script>
+{% endblock %}

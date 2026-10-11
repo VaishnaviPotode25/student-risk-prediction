@@ -1,3 +1,7 @@
+import re
+from math import ceil
+from urllib.parse import urlencode
+
 from bson import ObjectId
 from bson.errors import InvalidId
 from django.contrib import messages
@@ -6,7 +10,7 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from ml.predict import model_info, predict_risk
+from ml.predict import FEATURE_LABELS, model_info, predict_risk
 from ml.training import train_and_select
 
 from .forms import FEATURE_FIELDS, OUTCOME_TO_RISK, PredictionForm, StudentForm
@@ -16,6 +20,7 @@ from .mongo import (
     get_training_runs_collection,
 )
 
+PAGE_SIZE = 25
 
 def get_student_or_404(student_id):
     """Fetch one student by its string id, or raise a 404 page."""
@@ -37,28 +42,66 @@ def outcome_fields(outcome):
 
 
 def home(request):
-    students = get_students_collection()
-
-    context = {
-        "project_name": "Smart Student Performance Analytics and Risk Prediction System",
-        "total_students": students.count_documents({}),
-        "features": [
-            "Store student data in MongoDB",
-            "Train a machine learning model",
-            "Predict student risk level",
-            "View analytics on a dashboard",
-        ],
-    }
+    context = {}
+    if request.user.is_authenticated:
+        students = get_students_collection()
+        context = {
+            "total_students": students.count_documents({}),
+            "real_labelled": students.count_documents({"source": "outcome"}),
+            "total_predictions": get_predictions_collection().count_documents({}),
+            "model_info": model_info(),
+        }
     return render(request, "students/home.html", context)
 
 
 @login_required
 def student_list(request):
-    students = list(get_students_collection().find().sort("created_at", -1))
+    search = request.GET.get("q", "").strip()
+    risk = request.GET.get("risk", "")
+
+    query = {}
+    if search:
+        # re.escape makes the text match literally, so "A.B" does not act as a pattern.
+        query["name"] = {"$regex": re.escape(search), "$options": "i"}
+    if risk in ("Low", "Medium", "High"):
+        query["risk_level"] = risk
+    elif risk == "unlabelled":
+        query["risk_level"] = {"$exists": False}
+    else:
+        risk = ""
+
+    collection = get_students_collection()
+    total = collection.count_documents(query)
+    pages = max(1, ceil(total / PAGE_SIZE))
+    try:
+        page = min(max(int(request.GET.get("page", 1)), 1), pages)
+    except ValueError:
+        page = 1
+
+    students = list(
+        collection.find(query)
+        .sort("created_at", -1)
+        .skip((page - 1) * PAGE_SIZE)
+        .limit(PAGE_SIZE)
+    )
     # Templates can't use a name starting with "_", so we add a plain "id" field.
     for s in students:
         s["id"] = str(s["_id"])
-    return render(request, "students/student_list.html", {"students": students})
+
+    context = {
+        "students": students,
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "prev_page": page - 1 if page > 1 else None,
+        "next_page": page + 1 if page < pages else None,
+        "first_item": (page - 1) * PAGE_SIZE + 1 if total else 0,
+        "last_item": min(page * PAGE_SIZE, total),
+        "search": search,
+        "risk": risk,
+        "querystring": urlencode({k: v for k, v in {"q": search, "risk": risk}.items() if v}),
+    }
+    return render(request, "students/student_list.html", context)
 
 
 @login_required
@@ -146,6 +189,16 @@ def prediction_detail(request, prediction_id):
     if prediction is None:
         raise Http404("Prediction not found")
 
+    # Bar widths are relative to the strongest factor on this prediction.
+    factors = prediction.get("risk_factors", []) + prediction.get("protective_factors", [])
+    strongest = max((abs(f["effect"]) for f in factors), default=1) or 1
+    for factor in factors:
+        factor["width"] = max(6, round(abs(factor["effect"]) / strongest * 100))
+
+    prediction["inputs_display"] = [
+        (FEATURE_LABELS.get(key, key), value)
+        for key, value in prediction.get("inputs", {}).items()
+    ]
     return render(request, "students/prediction_detail.html", {"p": prediction})
 
 

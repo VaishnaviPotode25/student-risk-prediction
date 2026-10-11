@@ -1,19 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-</head>
-<body>
-    <h1>Login</h1>
+{% extends "students/base.html" %}
+{% block title %}Log in{% endblock %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="hidden" name="next" value="{{ next }}">
-        <button type="submit">Log in</button>
-    </form>
+{% block content %}
+<div class="auth">
+    <h1>Log in</h1>
+    <p class="muted">Sign in to manage students and run predictions.</p>
 
-    <p><a href="{% url 'home' %}">Home</a></p>
-</body>
-</html>
+    <div class="panel">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.errors %}
+            <p class="error" role="alert">That username and password don't match. Check both and try again.</p>
+            {% endif %}
+            <div class="form-grid single">
+                {% include "students/_fields.html" %}
+            </div>
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Log in</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

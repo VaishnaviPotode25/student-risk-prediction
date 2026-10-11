@@ -1,165 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-</head>
-<body>
-    <h1>Dashboard</h1>
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li><strong>{{ message.tags }}:</strong> {{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+{% extends "students/base.html" %}
+{% block title %}Dashboard{% endblock %}
 
-    <p>
-        <a href="{% url 'home' %}">Home</a> |
-        <a href="{% url 'student_list' %}">Students</a> |
-        <a href="{% url 'predict_student' %}">Predict risk</a>
-    </p>
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Dashboard</h1>
+        <p>How students are spread across risk levels, and how the model is doing.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'predict_student' %}">Predict a student</a>
+</div>
 
-    <h2>Overview</h2>
-    <ul>
-        <li>Total students: {{ total_students }}</li>
-        <li>Labelled students (training data): {{ labelled_students }}</li>
-        <li>Of those, labelled from real outcomes: {{ real_labelled }}</li>
-        <li>Predictions made: {{ total_predictions }}</li>
-    </ul>
-
-
-    <h2>Model</h2>
-    {% if model_info %}
-    <p>
-        Active model: <strong>{{ model_info.name }}</strong>
-        (test macro F1: {{ model_info.test_f1 }}{% if model_info.n_rows %}, trained on {{ model_info.n_rows }} students{% endif %})
-    </p>
-    {% else %}
-    <p>No trained model found. Run <code>python -m ml.train_model</code> first.</p>
-    {% endif %}
-
-    {% if can_retrain %}
-    <form method="post" action="{% url 'retrain_model' %}"
-          onsubmit="return confirm('Retrain the model now? This can take up to a minute.');">
-        {% csrf_token %}
-        <button type="submit">Retrain model</button>
-    </form>
-    {% endif %}
-
-    {% if training_runs %}
-    <h3>Recent training runs</h3>
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>When</th>
-            <th>By</th>
-            <th>Students</th>
-            <th>Best model</th>
-            <th>New F1</th>
-            <th>Old F1</th>
-            <th>Outcome</th>
-        </tr>
-        {% for run in training_runs %}
-        <tr>
-            <td>{{ run.trained_at }}</td>
-            <td>{{ run.triggered_by }}</td>
-            <td>{{ run.n_rows }}</td>
-            <td>{{ run.best_model }}</td>
-            <td>{{ run.new_metrics.f1_macro|floatformat:3 }}</td>
-            <td>{% if run.old_metrics %}{{ run.old_metrics.f1_macro|floatformat:3 }}{% else %}-{% endif %}</td>
-            <td>{% if run.promoted %}Replaced model{% else %}Kept current model{% endif %}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
-
-    <h2>Risk distribution and averages</h2>
-    <div style="display:flex; flex-wrap:wrap; gap:30px;">
-        <div style="width:380px;"><canvas id="riskChart"></canvas></div>
-        <div style="width:560px;"><canvas id="avgChart"></canvas></div>
+<div class="stack">
+    <div class="strip">
+        <div><div class="value">{{ total_students }}</div><div class="label">Students on record</div></div>
+        <div><div class="value">{{ labelled_students }}</div><div class="label">With a risk label (used for training)</div></div>
+        <div><div class="value">{{ real_labelled }}</div><div class="label">Labelled from real outcomes</div></div>
+        <div><div class="value">{{ total_predictions }}</div><div class="label">Predictions made</div></div>
     </div>
 
-    <h2>Average profile by risk level</h2>
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Risk level</th>
-            <th>Students</th>
-            <th>Attendance</th>
-            <th>Assignments</th>
-            <th>Internal marks</th>
-            <th>CGPA</th>
-            <th>Backlogs</th>
-        </tr>
-        {% for row in summary %}
-        <tr>
-            <td>{{ row.level }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ row.avg_attendance }}</td>
-            <td>{{ row.avg_assignments }}</td>
-            <td>{{ row.avg_marks }}</td>
-            <td>{{ row.avg_cgpa }}</td>
-            <td>{{ row.avg_backlogs }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="grid grid-2">
+        <section class="panel">
+            <h2>Students by risk level</h2>
+            <div class="chart-box"><canvas id="riskChart"></canvas></div>
+        </section>
+        <section class="panel">
+            <h2>Average scores by risk level</h2>
+            <div class="chart-box"><canvas id="avgChart"></canvas></div>
+        </section>
+    </div>
 
-    <h2>Recent predictions</h2>
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Student</th>
-            <th>Risk level</th>
-            <th>Confidence in that level</th>
-            <th>When</th>
-            <th></th>
-        </tr>
-        {% for p in recent_predictions %}
-        <tr>
-            <td>{{ p.student_name }}</td>
-            <td>{{ p.risk_level }}</td>
-            <td>
-                {% if p.risk_level == "Low" %}{{ p.probabilities.Low }}%{% endif %}
-                {% if p.risk_level == "Medium" %}{{ p.probabilities.Medium }}%{% endif %}
-                {% if p.risk_level == "High" %}{{ p.probabilities.High }}%{% endif %}
-            </td>
-            <td>{{ p.predicted_at }}</td>
-            <td><a href="{% url 'prediction_detail' p.id %}">View</a></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5">No predictions yet.</td></tr>
-        {% endfor %}
-    </table>
+    <section>
+        <h2>Average profile by risk level</h2>
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Risk level</th>
+                        <th class="num">Students</th>
+                        <th class="num">Attendance %</th>
+                        <th class="num">Assignments %</th>
+                        <th class="num">Internal marks</th>
+                        <th class="num">CGPA</th>
+                        <th class="num">Backlogs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary %}
+                    <tr>
+                        <td><span class="badge {{ row.level|lower }}">{{ row.level }}</span></td>
+                        <td class="num">{{ row.count }}</td>
+                        <td class="num">{{ row.avg_attendance }}</td>
+                        <td class="num">{{ row.avg_assignments }}</td>
+                        <td class="num">{{ row.avg_marks }}</td>
+                        <td class="num">{{ row.avg_cgpa }}</td>
+                        <td class="num">{{ row.avg_backlogs }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-    {{ chart_data|json_script:"chart-data" }}
+    <section class="panel">
+        <h2>Model</h2>
+        {% if model_info %}
+        <p>
+            Active model: <strong>{{ model_info.name }}</strong>, with a macro F1 of
+            <strong>{{ model_info.test_f1 }}</strong> on its test set{% if model_info.n_rows %}, trained on {{ model_info.n_rows }} students{% endif %}.
+        </p>
+        {% else %}
+        <p>No trained model found. Run <code>python -m ml.train_model</code> first.</p>
+        {% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <script>
-        const data = JSON.parse(document.getElementById("chart-data").textContent);
-        const colors = ["#2e9e5b", "#e8a317", "#d64545"]; // Low, Medium, High
+        {% if can_retrain %}
+        <form id="retrain-form" method="post" action="{% url 'retrain_model' %}">
+            {% csrf_token %}
+            <button id="retrain-btn" class="btn btn-primary" type="submit">Retrain model</button>
+        </form>
+        <p class="hint">Trains on every labelled student. The live model is only replaced if the new one scores at least as well.</p>
+        {% else %}
+        <p class="hint">Only staff accounts can retrain the model.</p>
+        {% endif %}
 
-        new Chart(document.getElementById("riskChart"), {
-            type: "doughnut",
-            data: {
-                labels: data.levels,
-                datasets: [{ data: data.counts, backgroundColor: colors }]
-            },
-            options: { plugins: { title: { display: true, text: "Students by risk level" } } }
-        });
+        <h3 style="margin-top: 24px;">Recent training runs</h3>
+        {% if training_runs %}
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>When</th>
+                        <th>By</th>
+                        <th class="num">Students</th>
+                        <th>Best model</th>
+                        <th class="num">New F1</th>
+                        <th class="num">Old F1</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in training_runs %}
+                    <tr>
+                        <td>{{ run.trained_at|date:"j M Y, H:i" }}</td>
+                        <td>{{ run.triggered_by }}</td>
+                        <td class="num">{{ run.n_rows }}</td>
+                        <td>{{ run.best_model }}</td>
+                        <td class="num">{{ run.new_metrics.f1_macro|floatformat:3 }}</td>
+                        <td class="num">{% if run.old_metrics %}{{ run.old_metrics.f1_macro|floatformat:3 }}{% else %}-{% endif %}</td>
+                        <td>{% if run.promoted %}<span class="badge low">Model replaced</span>{% else %}<span class="badge none">Kept current model</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted">No retraining runs yet.</p>
+        {% endif %}
+    </section>
 
-        new Chart(document.getElementById("avgChart"), {
-            type: "bar",
-            data: {
-                labels: data.levels,
-                datasets: [
-                    { label: "Attendance", data: data.avg_attendance, backgroundColor: "#4c78a8" },
-                    { label: "Assignments", data: data.avg_assignments, backgroundColor: "#f58518" },
-                    { label: "Internal marks", data: data.avg_marks, backgroundColor: "#54a24b" }
-                ]
-            },
-            options: {
-                plugins: { title: { display: true, text: "Average scores by risk level" } },
-                scales: { y: { min: 0, max: 100 } }
+    <section>
+        <h2>Recent predictions</h2>
+        {% if recent_predictions %}
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Risk level</th>
+                        <th class="num">Confidence</th>
+                        <th>When</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent_predictions %}
+                    <tr class="risk-{{ p.risk_level }}">
+                        <td>{{ p.student_name }}</td>
+                        <td><span class="badge {{ p.risk_level|lower }}">{{ p.risk_level }}</span></td>
+                        <td class="num">
+                            {% if p.risk_level == "Low" %}{{ p.probabilities.Low }}%{% endif %}
+                            {% if p.risk_level == "Medium" %}{{ p.probabilities.Medium }}%{% endif %}
+                            {% if p.risk_level == "High" %}{{ p.probabilities.High }}%{% endif %}
+                        </td>
+                        <td>{{ p.predicted_at|date:"j M Y, H:i" }}</td>
+                        <td><a class="btn btn-quiet" href="{% url 'prediction_detail' p.id %}">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="panel empty">
+            <h3>No predictions yet</h3>
+            <p>Predict a student's risk and it will show up here.</p>
+            <a class="btn btn-primary" href="{% url 'predict_student' %}">Predict a student</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+{{ chart_data|json_script:"chart-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+    var data = JSON.parse(document.getElementById("chart-data").textContent);
+    var riskColors = ["#1E8A5A", "#D9902B", "#BF3B34"];
+    Chart.defaults.font.family = '"Instrument Sans", "Segoe UI", system-ui, sans-serif';
+
+    new Chart(document.getElementById("riskChart"), {
+        type: "doughnut",
+        data: { labels: data.levels, datasets: [{ data: data.counts, backgroundColor: riskColors, borderWidth: 2 }] },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+
+    new Chart(document.getElementById("avgChart"), {
+        type: "bar",
+        data: {
+            labels: data.levels,
+            datasets: [
+                { label: "Attendance", data: data.avg_attendance, backgroundColor: "#243B8F" },
+                { label: "Assignments", data: data.avg_assignments, backgroundColor: "#6F86D6" },
+                { label: "Internal marks", data: data.avg_marks, backgroundColor: "#B7C3EE" }
+            ]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { min: 0, max: 100 } }
+        }
+    });
+
+    var retrainForm = document.getElementById("retrain-form");
+    if (retrainForm) {
+        retrainForm.addEventListener("submit", function (event) {
+            if (!confirm("Retrain the model now? This can take up to a minute.")) {
+                event.preventDefault();
+                return;
             }
+            var button = document.getElementById("retrain-btn");
+            button.disabled = true;
+            button.textContent = "Training, please wait...";
         });
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}

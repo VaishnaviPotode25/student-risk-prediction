@@ -1,33 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Student Risk Prediction</title>
-</head>
-<body>
-    <h1>{{ project_name }}</h1>
-    <p>Total students in database: {{ total_students }}</p>
-    <p>
-        <a href="{% url 'student_list' %}">View students</a> |
-        <a href="{% url 'add_student' %}">Add student</a> |
-        <a href="{% url 'predict_student' %}">Predict risk</a> |
-        <a href="{% url 'dashboard' %}">Dashboard</a>
-    </p>
+{% extends "students/base.html" %}
+{% block title %}Home{% endblock %}
 
-    {% if user.is_authenticated %}
-    <form method="post" action="{% url 'logout' %}" style="display:inline">
-        {% csrf_token %}
-        <button type="submit">Log out ({{ user.username }})</button>
-    </form>
-    {% else %}
-    <p><a href="{% url 'login' %}">Log in</a></p>
-    {% endif %}
+{% block content %}
+<section class="hero">
+    <h1>Find students who need support early</h1>
+    <p>Enter a student's attendance, marks and study habits to see their risk level and what is driving it.</p>
+    <div class="actions">
+        {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'predict_student' %}">Predict a student's risk</a>
+        <a class="btn btn-secondary" href="{% url 'dashboard' %}">Open dashboard</a>
+        {% else %}
+        <a class="btn btn-primary" href="{% url 'login' %}">Log in to get started</a>
+        {% endif %}
+    </div>
+</section>
 
-    <h2>Planned features</h2>
-    <ul>
-        {% for feature in features %}
-            <li>{{ feature }}</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% if user.is_authenticated %}
+<div class="strip">
+    <div><div class="value">{{ total_students }}</div><div class="label">Students on record</div></div>
+    <div><div class="value">{{ real_labelled }}</div><div class="label">With a real outcome recorded</div></div>
+    <div><div class="value">{{ total_predictions }}</div><div class="label">Predictions made</div></div>
+    <div><div class="value">{% if model_info %}{{ model_info.test_f1 }}{% else %}-{% endif %}</div><div class="label">Model score (macro F1)</div></div>
+</div>
+
+<div class="signposts">
+    <div class="signpost">
+        <h3>Predict risk</h3>
+        <p>Get a risk level, the model's confidence, and the factors behind it.</p>
+        <a href="{% url 'predict_student' %}">Predict a student</a>
+    </div>
+    <div class="signpost">
+        <h3>Keep records</h3>
+        <p>Add students, update their numbers, and record final outcomes when results are out.</p>
+        <a href="{% url 'student_list' %}">Open students</a>
+    </div>
+    <div class="signpost">
+        <h3>Improve the model</h3>
+        <p>Retrain on recorded outcomes. The live model is only replaced if the new one scores as well.</p>
+        <a href="{% url 'dashboard' %}">Open dashboard</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

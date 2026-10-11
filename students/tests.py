@@ -238,3 +238,43 @@ class RetrainPermissionTests(MongoTestCase):
         response = self.client.post("/retrain/", follow=True)
         self.assertContains(response, "Not enough data")
         self.assertEqual(get_training_runs_collection().count_documents({}), 0)
+
+
+class StudentListTests(MongoTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(User.objects.create_user("lister", password="pw12345!"))
+
+    def test_search_filters_by_name(self):
+        self.add_student_doc(name="Asha Rao")
+        self.add_student_doc(name="Ben Cole")
+        response = self.client.get("/students/?q=asha")
+        self.assertContains(response, "Asha Rao")
+        self.assertNotContains(response, "Ben Cole")
+
+    def test_search_text_is_matched_literally(self):
+        self.add_student_doc(name="A.B")
+        self.add_student_doc(name="AXB")
+        response = self.client.get("/students/?q=A.B")
+        self.assertEqual(response.context["total"], 1)
+
+    def test_risk_filter(self):
+        self.add_student_doc(name="Risky", risk_level="High", source="synthetic")
+        self.add_student_doc(name="Steady", risk_level="Low", source="synthetic")
+        response = self.client.get("/students/?risk=High")
+        self.assertContains(response, "Risky")
+        self.assertNotContains(response, "Steady")
+
+    def test_pagination(self):
+        for i in range(30):
+            self.add_student_doc(name=f"Student {i:02d}")
+        first = self.client.get("/students/")
+        self.assertEqual(first.context["total"], 30)
+        self.assertEqual(first.context["pages"], 2)
+        self.assertEqual(len(first.context["students"]), 25)
+        second = self.client.get("/students/?page=2")
+        self.assertEqual(len(second.context["students"]), 5)
+
+    def test_bad_page_number_does_not_crash(self):
+        response = self.client.get("/students/?page=abc")
+        self.assertEqual(response.status_code, 200)

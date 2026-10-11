@@ -1,47 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Students</title>
-</head>
-<body>
-    <h1>Students</h1>
-    <p><a href="{% url 'add_student' %}">+ Add student</a> | <a href="{% url 'home' %}">Home</a></p>
+{% extends "students/base.html" %}
+{% block title %}Students{% endblock %}
 
-    <table border="1" cellpadding="6">
-        <tr>
-            <th>Name</th>
-            <th>Attendance</th>
-            <th>Assignments</th>
-            <th>Internal marks</th>
-            <th>CGPA</th>
-            <th>Study hrs</th>
-            <th>Backlogs</th>
-            <th>Outcome</th>
-            <th>Actions</th>
-        </tr>
-        {% for s in students %}
-        <tr>
-            <td>{{ s.name }}</td>
-            <td>{{ s.attendance }}</td>
-            <td>{{ s.assignment_completion }}</td>
-            <td>{{ s.internal_marks }}</td>
-            <td>{{ s.previous_cgpa }}</td>
-            <td>{{ s.study_hours }}</td>
-            <td>{{ s.backlogs }}</td>
-            <td>{{ s.actual_outcome|default:"-" }}</td>
-            <td>
-                <a href="{% url 'edit_student' s.id %}">Edit</a>
-                <form method="post" action="{% url 'delete_student' s.id %}" style="display:inline"
-                      onsubmit="return confirm('Delete {{ s.name }}?');">
-                    {% csrf_token %}
-                    <button type="submit">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="9">No students yet.</td></tr>
-        {% endfor %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Students</h1>
+        <p>{{ total }} student{{ total|pluralize }} {% if search or risk %}match your filters{% else %}on record{% endif %}.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'add_student' %}">Add student</a>
+</div>
+
+<form class="toolbar" method="get">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search by name" aria-label="Search by name">
+    <select name="risk" aria-label="Filter by risk level">
+        <option value="">All risk levels</option>
+        <option value="Low"{% if risk == "Low" %} selected{% endif %}>Low risk</option>
+        <option value="Medium"{% if risk == "Medium" %} selected{% endif %}>Medium risk</option>
+        <option value="High"{% if risk == "High" %} selected{% endif %}>High risk</option>
+        <option value="unlabelled"{% if risk == "unlabelled" %} selected{% endif %}>Not labelled</option>
+    </select>
+    <button class="btn btn-secondary" type="submit">Apply</button>
+    {% if search or risk %}<a class="btn btn-quiet" href="{% url 'student_list' %}">Clear</a>{% endif %}
+</form>
+
+{% if students %}
+<div class="table-wrap">
+    <table class="data">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th class="num">Attendance %</th>
+                <th class="num">Assignments %</th>
+                <th class="num">Internal marks</th>
+                <th class="num">CGPA</th>
+                <th class="num">Study hrs</th>
+                <th class="num">Backlogs</th>
+                <th>Risk label</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr class="risk-{{ s.risk_level|default:'none' }}">
+                <td>{{ s.name }}</td>
+                <td class="num">{{ s.attendance }}</td>
+                <td class="num">{{ s.assignment_completion }}</td>
+                <td class="num">{{ s.internal_marks }}</td>
+                <td class="num">{{ s.previous_cgpa }}</td>
+                <td class="num">{{ s.study_hours }}</td>
+                <td class="num">{{ s.backlogs }}</td>
+                <td>
+                    {% if s.risk_level %}
+                    <span class="badge {{ s.risk_level|lower }}">{{ s.risk_level }}</span>
+                    <span class="subtle">{% if s.source == "outcome" %}from real outcome{% else %}generated{% endif %}</span>
+                    {% else %}
+                    <span class="badge none">Not labelled</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="row-actions">
+                        <a class="btn btn-quiet" href="{% url 'edit_student' s.id %}">Edit</a>
+                        <form method="post" action="{% url 'delete_student' s.id %}" class="delete-form" data-name="{{ s.name }}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-</body>
-</html>
+</div>
+
+{% if pages > 1 %}
+<div class="pager">
+    <span>Showing {{ first_item }} to {{ last_item }} of {{ total }}</span>
+    <div class="actions">
+        {% if prev_page %}<a class="btn btn-secondary" href="?{{ querystring }}&page={{ prev_page }}">Previous</a>{% endif %}
+        <span>Page {{ page }} of {{ pages }}</span>
+        {% if next_page %}<a class="btn btn-secondary" href="?{{ querystring }}&page={{ next_page }}">Next</a>{% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="panel empty">
+    {% if search or risk %}
+    <h3>No students match those filters</h3>
+    <p>Try a different name or risk level.</p>
+    <a class="btn btn-secondary" href="{% url 'student_list' %}">Clear filters</a>
+    {% else %}
+    <h3>No students yet</h3>
+    <p>Add your first student to start building the dataset.</p>
+    <a class="btn btn-primary" href="{% url 'add_student' %}">Add student</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll(".delete-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (!confirm("Delete " + form.dataset.name + "? This cannot be undone.")) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -20,16 +20,35 @@ OUTCOME_CHOICES = [("", "Not known yet")] + [(o, o) for o in OUTCOME_TO_RISK]
 
 class StudentForm(forms.Form):
     name = forms.CharField(max_length=100)
-    attendance = forms.IntegerField(min_value=0, max_value=100, label="Attendance (%)")
-    assignment_completion = forms.IntegerField(min_value=0, max_value=100, label="Assignment completion (%)")
-    internal_marks = forms.IntegerField(min_value=0, max_value=100)
-    previous_cgpa = forms.FloatField(min_value=0, max_value=10, label="Previous CGPA")
-    study_hours = forms.IntegerField(min_value=0, max_value=24, label="Study hours per day")
-    backlogs = forms.IntegerField(min_value=0)
+    attendance = forms.IntegerField(
+        min_value=0, max_value=100, label="Attendance (%)",
+        help_text="Share of classes attended, from 0 to 100.",
+    )
+    assignment_completion = forms.IntegerField(
+        min_value=0, max_value=100, label="Assignment completion (%)",
+        help_text="Share of assignments handed in, from 0 to 100.",
+    )
+    internal_marks = forms.IntegerField(
+        min_value=0, max_value=100,
+        help_text="Internal assessment score out of 100.",
+    )
+    previous_cgpa = forms.FloatField(
+        min_value=0, max_value=10, label="Previous CGPA",
+        help_text="CGPA from the last semester, from 0 to 10.",
+    )
+    study_hours = forms.IntegerField(
+        min_value=0, max_value=24, label="Study hours per day",
+        help_text="Average hours of self-study per day.",
+    )
+    backlogs = forms.IntegerField(
+        min_value=0,
+        help_text="Number of subjects not yet cleared.",
+    )
     actual_outcome = forms.ChoiceField(
         choices=OUTCOME_CHOICES,
         required=False,
-        label="Actual outcome (fill in at the end of the semester)",
+        label="Actual outcome",
+        help_text="Leave as 'Not known yet' until results are out. A recorded outcome becomes a training label.",
     )
 
 

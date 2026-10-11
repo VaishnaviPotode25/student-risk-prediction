@@ -1,18 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }}</title>
-</head>
-<body>
-    <h1>{{ title }}</h1>
+{% extends "students/base.html" %}
+{% block title %}{{ title }}{% endblock %}
 
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>{{ title }}</h1>
+        <p>
+            {% if "Edit" in title %}
+            Update the numbers, or record the final outcome once results are out.
+            {% else %}
+            Add a student's record. You can add the final outcome later, when results are out.
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="panel" style="max-width: 760px;">
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Save student</button>
+        {% if form.non_field_errors %}<p class="error" role="alert">{{ form.non_field_errors }}</p>{% endif %}
+        <div class="form-grid">
+            {% include "students/_fields.html" %}
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">{% if "Edit" in title %}Save changes{% else %}Save student{% endif %}</button>
+            <a class="btn btn-secondary" href="{% url 'student_list' %}">Cancel</a>
+        </div>
     </form>
-
-    <p><a href="{% url 'student_list' %}">Back to student list</a></p>
-</body>
-</html>
+</div>
+{% endblock %}
