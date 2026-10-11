@@ -103,4 +103,5 @@ ml/model_comparison.csv    latest model comparison
 
 ![Dashboard](docs/screenshots/dashboard.png)
 ![Prediction result](docs/screenshots/prediction.png)
-![Student list](docs/screenshots/students.png)
+![Student list](docs/screenshots/student_list.png)
+![Home Page](docs/screenshots/home_page.png)
