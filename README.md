@@ -36,13 +36,13 @@ Retrain button -> ml/training.py -> compare 7 models -> promote only if not wors
 
 | Model | Accuracy | Macro F1 | High recall |
 |---|---|---|---|
-| Logistic Regression | 0.908 | 0.905 | 0.937 |
-| SVM | 0.903 | 0.900 | 0.931 |
-| Naive Bayes | 0.897 | 0.894 | 0.856 |
-| KNN | 0.898 | 0.893 | 0.883 |
-| Random Forest | 0.896 | 0.891 | 0.895 |
-| Gradient Boosting | 0.891 | 0.886 | 0.892 |
-| Decision Tree | 0.852 | 0.846 | 0.874 |
+| Logistic Regression | 0.909 | 0.905 | 0.934 |
+| SVM | 0.906 | 0.902 | 0.925 |
+| Gradient Boosting | 0.899 | 0.895 | 0.899 |
+| KNN | 0.899 | 0.894 | 0.890 |
+| Random Forest | 0.899 | 0.893 | 0.887 |
+| Naive Bayes | 0.895 | 0.890 | 0.845 |
+| Decision Tree | 0.848 | 0.844 | 0.881 |
 
 Figures come from one training run. Each successful retrain rewrites ml/model_comparison.csv, and the numbers can move by a few thousandths.
 
@@ -50,7 +50,7 @@ Logistic Regression was selected: it ranked first on macro F1 and High-class rec
 per-student explanations. It performs well partly because the synthetic labels come from a
 weighted sum of the features, which a linear model fits naturally. On the held-out test set
 (about 400 students) it reached macro F1 0.909.
-Compared 7 classifiers with stratified 5-fold cross-validation on a 2,000-student synthetic dataset. Selected Logistic Regression (macro F1 0.91 on a held-out test set, with High-risk recall of 0.90) for accuracy and per-prediction explainability.
+
 
 ## Setup (Windows)
 
